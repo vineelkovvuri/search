@@ -1,6 +1,20 @@
 use std::fs;
 use std::path::Path;
 
+struct ExactFileNameMatcher<'a> {
+    file_name: &'a str,
+}
+
+trait Matcher {
+    fn match_path(&self, file_path: &str) -> bool;
+}
+
+impl<'a> Matcher for ExactFileNameMatcher<'a> {
+    fn match_path(&self, file_path: &str) -> bool {
+        file_path.ends_with(self.file_name)
+    }
+}
+
 fn main() {
     let mut results: Vec<String> = Vec::new();
     let path = Path::new("C:\\");
