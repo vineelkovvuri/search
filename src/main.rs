@@ -15,19 +15,37 @@ impl<'a> Matcher for ExactFileNameMatcher<'a> {
     }
 }
 
+trait Consumer {
+    fn consume(&mut self, file_path: &str);
+}
+
+struct ResultsCollector {
+    results: Vec<String>,
+}
+
+impl Consumer for ResultsCollector {
+    fn consume(&mut self, file_path: &str) {
+        self.results.push(file_path.to_string())
+    }
+}
+
 fn main() {
-    let mut results: Vec<String> = Vec::new();
     let path = Path::new("C:\\");
     let exact_matcher = ExactFileNameMatcher {
         file_name: "kernel32.dll",
     };
-    search(&path, &exact_matcher, &mut results);
-    for result in results {
+    let mut consumer = ResultsCollector {
+        results: Vec::new(),
+    };
+
+    search(&path, &exact_matcher, &mut consumer);
+
+    for result in consumer.results {
         println!("{:?}", result);
     }
 }
 
-fn search(path: &Path, matcher: &dyn Matcher, results: &mut Vec<String>) {
+fn search(path: &Path, matcher: &dyn Matcher, consumer: &mut dyn Consumer) {
     let result = fs::read_dir(&path);
     if let Ok(entries) = result {
         for entry in entries {
@@ -35,9 +53,9 @@ fn search(path: &Path, matcher: &dyn Matcher, results: &mut Vec<String>) {
                 let sub_path = entry.path();
                 if sub_path.is_dir() {
                     let sub_path = Path::new(&sub_path);
-                    search(sub_path, matcher, results);
+                    search(sub_path, matcher, consumer);
                 } else if matcher.match_path(sub_path.to_str().unwrap()) {
-                    results.push(String::from(sub_path.as_os_str().to_str().unwrap()));
+                    consumer.consume(sub_path.to_str().unwrap());
                 }
             }
         }
